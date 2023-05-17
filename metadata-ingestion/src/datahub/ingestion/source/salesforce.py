@@ -15,7 +15,7 @@ from datahub.configuration.common import (
     ConfigModel,
     ConfigurationError,
 )
-from datahub.configuration.source_common import DatasetSourceConfigBase
+from datahub.configuration.source_common import DatasetSourceConfigMixin
 from datahub.emitter.mcp import MetadataChangeProposalWrapper
 from datahub.emitter.mcp_builder import add_domain_to_entity_wu
 from datahub.ingestion.api.common import PipelineContext, WorkUnit
@@ -28,6 +28,7 @@ from datahub.ingestion.api.decorators import (
     support_status,
 )
 from datahub.ingestion.api.source import Source, SourceReport
+from datahub.ingestion.source.common.subtypes import DatasetSubTypes
 from datahub.metadata.schema_classes import (
     AuditStampClass,
     BooleanTypeClass,
@@ -60,6 +61,7 @@ logger = logging.getLogger(__name__)
 class SalesforceAuthType(Enum):
     USERNAME_PASSWORD = "USERNAME_PASSWORD"
     DIRECT_ACCESS_TOKEN = "DIRECT_ACCESS_TOKEN"
+    JSON_WEB_TOKEN = "JSON_WEB_TOKEN"
 
 
 class SalesforceProfilingConfig(ConfigModel):
@@ -71,7 +73,7 @@ class SalesforceProfilingConfig(ConfigModel):
     # TODO - support field level profiling
 
 
-class SalesforceConfig(DatasetSourceConfigBase):
+class SalesforceConfig(DatasetSourceConfigMixin):
     platform = "salesforce"
 
     auth: SalesforceAuthType = SalesforceAuthType.USERNAME_PASSWORD
@@ -79,6 +81,12 @@ class SalesforceConfig(DatasetSourceConfigBase):
     # Username, Password Auth
     username: Optional[str] = Field(description="Salesforce username")
     password: Optional[str] = Field(description="Password for Salesforce user")
+    consumer_key: Optional[str] = Field(
+        description="Consumer key for Salesforce JSON web token access"
+    )
+    private_key: Optional[str] = Field(
+        description="Private key as a string for Salesforce JSON web token access"
+    )
     security_token: Optional[str] = Field(
         description="Security token for Salesforce username"
     )
@@ -229,6 +237,26 @@ class SalesforceSource(Source):
                     domain="test" if self.config.is_sandbox else None,
                 )
 
+            elif self.config.auth is SalesforceAuthType.JSON_WEB_TOKEN:
+                logger.debug("Json Web Token provided in the config")
+                assert (
+                    self.config.username is not None
+                ), "Config username is required for JSON_WEB_TOKEN auth"
+                assert (
+                    self.config.consumer_key is not None
+                ), "Config consumer_key is required for JSON_WEB_TOKEN auth"
+                assert (
+                    self.config.private_key is not None
+                ), "Config private_key is required for JSON_WEB_TOKEN auth"
+
+                self.sf = Salesforce(
+                    username=self.config.username,
+                    consumer_key=self.config.consumer_key,
+                    privatekey=self.config.private_key,
+                    session=self.session,
+                    domain="test" if self.config.is_sandbox else None,
+                )
+
         except Exception as e:
             logger.error(e)
             raise ConfigurationError("Salesforce login failed") from e
@@ -366,12 +394,14 @@ class SalesforceSource(Source):
     def get_operation_workunit(
         self, customObject: dict, datasetUrn: str
     ) -> Iterable[WorkUnit]:
+        reported_time: int = int(time.time() * 1000)
+
         if customObject.get("CreatedBy") and customObject.get("CreatedDate"):
             timestamp = self.get_time_from_salesforce_timestamp(
                 customObject["CreatedDate"]
             )
             operation = OperationClass(
-                timestampMillis=timestamp,
+                timestampMillis=reported_time,
                 operationType=OperationTypeClass.CREATE,
                 lastUpdatedTimestamp=timestamp,
                 actor=builder.make_user_urn(customObject["CreatedBy"]["Username"]),
@@ -392,7 +422,7 @@ class SalesforceSource(Source):
                     customObject["LastModifiedDate"]
                 )
                 operation = OperationClass(
-                    timestampMillis=timestamp,
+                    timestampMillis=reported_time,
                     operationType=OperationTypeClass.ALTER,
                     lastUpdatedTimestamp=timestamp,
                     actor=builder.make_user_urn(
@@ -448,11 +478,11 @@ class SalesforceSource(Source):
         ).as_workunit()
 
     def get_subtypes_workunit(self, sObjectName: str, datasetUrn: str) -> WorkUnit:
-        subtypes = []
+        subtypes: List[str] = []
         if sObjectName.endswith("__c"):
-            subtypes.append("Custom Object")
+            subtypes.append(DatasetSubTypes.SALESFORCE_CUSTOM_OBJECT)
         else:
-            subtypes.append("Standard Object")
+            subtypes.append(DatasetSubTypes.SALESFORCE_STANDARD_OBJECT)
 
         return MetadataChangeProposalWrapper(
             entityUrn=datasetUrn, aspect=SubTypesClass(typeNames=subtypes)

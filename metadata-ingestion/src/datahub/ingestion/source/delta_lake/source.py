@@ -28,13 +28,13 @@ from datahub.ingestion.source.aws.s3_util import (
     get_key_prefix,
     strip_s3_prefix,
 )
+from datahub.ingestion.source.data_lake_common.data_lake_utils import ContainerWUCreator
 from datahub.ingestion.source.delta_lake.config import DeltaLakeSourceConfig
 from datahub.ingestion.source.delta_lake.delta_lake_utils import (
     get_file_count,
     read_delta_table,
 )
 from datahub.ingestion.source.delta_lake.report import DeltaLakeSourceReport
-from datahub.ingestion.source.s3.data_lake_utils import ContainerWUCreator
 from datahub.ingestion.source.schema_inference.csv_tsv import tableschema_type_map
 from datahub.metadata.com.linkedin.pegasus2avro.common import Status
 from datahub.metadata.com.linkedin.pegasus2avro.metadata.snapshot import DatasetSnapshot
@@ -278,7 +278,7 @@ class DeltaLakeSource(Source):
         yield wu
 
         container_wus = self.container_WU_creator.create_container_hierarchy(
-            browse_path, self.source_config.is_s3, dataset_urn
+            browse_path, dataset_urn
         )
         for wu in container_wus:
             self.report.report_workunit(wu)
@@ -305,8 +305,8 @@ class DeltaLakeSource(Source):
 
     def local_get_folders(self, path: str) -> Iterable[str]:
         if not os.path.isdir(path):
-            raise Exception(
-                f"{path} does not exist. Please check base_path configuration."
+            raise FileNotFoundError(
+                f"{path} does not exist or is not a directory. Please check base_path configuration."
             )
         for _, folders, _ in os.walk(path):
             for folder in folders:

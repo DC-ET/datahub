@@ -15,9 +15,12 @@ import com.linkedin.metadata.models.registry.EntityRegistry;
 import com.linkedin.metadata.query.filter.Condition;
 import com.linkedin.metadata.query.filter.Criterion;
 import com.linkedin.metadata.query.filter.Filter;
+import com.linkedin.metadata.query.filter.SortCriterion;
+import com.linkedin.metadata.search.elasticsearch.indexbuilder.ReindexConfig;
 import com.linkedin.metadata.search.elasticsearch.update.ESBulkProcessor;
 import com.linkedin.metadata.search.utils.ESUtils;
 import com.linkedin.metadata.search.utils.QueryUtils;
+import com.linkedin.metadata.shared.ElasticSearchIndexed;
 import com.linkedin.metadata.timeseries.TimeseriesAspectService;
 import com.linkedin.metadata.timeseries.elastic.indexbuilder.MappingsBuilder;
 import com.linkedin.metadata.timeseries.elastic.indexbuilder.TimeseriesAspectIndexBuilders;
@@ -30,6 +33,7 @@ import com.linkedin.timeseries.AggregationSpec;
 import com.linkedin.timeseries.DeleteAspectValuesResult;
 import com.linkedin.timeseries.GenericTable;
 import com.linkedin.timeseries.GroupingBucket;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
@@ -56,7 +60,7 @@ import org.elasticsearch.search.sort.SortOrder;
 
 
 @Slf4j
-public class ElasticSearchTimeseriesAspectService implements TimeseriesAspectService {
+public class ElasticSearchTimeseriesAspectService implements TimeseriesAspectService, ElasticSearchIndexed {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private static final String TIMESTAMP_FIELD = "timestampMillis";
   private static final String EVENT_FIELD = "event";
@@ -111,7 +115,17 @@ public class ElasticSearchTimeseriesAspectService implements TimeseriesAspectSer
 
   @Override
   public void configure() {
-    _indexBuilders.buildAll();
+    _indexBuilders.reindexAll();
+  }
+
+  @Override
+  public List<ReindexConfig> getReindexConfigs() {
+    return _indexBuilders.getReindexConfigs();
+  }
+
+  @Override
+  public void reindexAll() {
+    configure();
   }
 
   @Override
@@ -128,10 +142,16 @@ public class ElasticSearchTimeseriesAspectService implements TimeseriesAspectSer
   }
 
   @Override
-  public List<EnvelopedAspect> getAspectValues(@Nonnull final Urn urn, @Nonnull String entityName,
-      @Nonnull String aspectName, @Nullable Long startTimeMillis, @Nullable Long endTimeMillis, @Nullable Integer limit,
-      @Nullable Boolean getLatestValue, @Nullable Filter filter) {
-    final BoolQueryBuilder filterQueryBuilder = QueryBuilders.boolQuery().must(ESUtils.buildFilterQuery(filter));
+  public List<EnvelopedAspect> getAspectValues(
+      @Nonnull final Urn urn,
+      @Nonnull final String entityName,
+      @Nonnull final String aspectName,
+      @Nullable final Long startTimeMillis,
+      @Nullable final Long endTimeMillis,
+      @Nullable final Integer limit,
+      @Nullable final Filter filter,
+      @Nullable final SortCriterion sort) {
+    final BoolQueryBuilder filterQueryBuilder = QueryBuilders.boolQuery().must(ESUtils.buildFilterQuery(filter, true));
     filterQueryBuilder.must(QueryBuilders.matchQuery("urn", urn.toString()));
     // NOTE: We are interested only in the un-exploded rows as only they carry the `event` payload.
     filterQueryBuilder.mustNot(QueryBuilders.termQuery(MappingsBuilder.IS_EXPLODED_FIELD, true));
@@ -139,24 +159,27 @@ public class ElasticSearchTimeseriesAspectService implements TimeseriesAspectSer
       Criterion startTimeCriterion = new Criterion().setField(TIMESTAMP_FIELD)
           .setCondition(Condition.GREATER_THAN_OR_EQUAL_TO)
           .setValue(startTimeMillis.toString());
-      filterQueryBuilder.must(ESUtils.getQueryBuilderFromCriterion(startTimeCriterion));
+      filterQueryBuilder.must(ESUtils.getQueryBuilderFromCriterion(startTimeCriterion, true));
     }
     if (endTimeMillis != null) {
       Criterion endTimeCriterion = new Criterion().setField(TIMESTAMP_FIELD)
           .setCondition(Condition.LESS_THAN_OR_EQUAL_TO)
           .setValue(endTimeMillis.toString());
-      filterQueryBuilder.must(ESUtils.getQueryBuilderFromCriterion(endTimeCriterion));
+      filterQueryBuilder.must(ESUtils.getQueryBuilderFromCriterion(endTimeCriterion, true));
     }
     final SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
     searchSourceBuilder.query(filterQueryBuilder);
-    if (getLatestValue != null && getLatestValue) {
-      if (limit != null && limit > 1) {
-        log.warn(String.format("Changing limit from %s to 1, since getLatestValue is true", limit));
-      }
-      limit = 1;
-    }
     searchSourceBuilder.size(limit != null ? limit : DEFAULT_LIMIT);
-    searchSourceBuilder.sort(SortBuilders.fieldSort("@timestamp").order(SortOrder.DESC));
+
+    if (sort != null) {
+      final SortOrder esSortOrder =
+          (sort.getOrder() == com.linkedin.metadata.query.filter.SortOrder.ASCENDING) ? SortOrder.ASC
+              : SortOrder.DESC;
+      searchSourceBuilder.sort(SortBuilders.fieldSort(sort.getField()).order(esSortOrder));
+    } else {
+      // By default, sort by the timestampMillis descending.
+      searchSourceBuilder.sort(SortBuilders.fieldSort("@timestamp").order(SortOrder.DESC));
+    }
 
     final SearchRequest searchRequest = new SearchRequest();
     searchRequest.source(searchSourceBuilder);
@@ -201,7 +224,7 @@ public class ElasticSearchTimeseriesAspectService implements TimeseriesAspectSer
   public DeleteAspectValuesResult deleteAspectValues(@Nonnull String entityName, @Nonnull String aspectName,
       @Nonnull Filter filter) {
     final String indexName = _indexConvention.getTimeseriesAspectIndexName(entityName, aspectName);
-    final BoolQueryBuilder filterQueryBuilder = ESUtils.buildFilterQuery(filter);
+    final BoolQueryBuilder filterQueryBuilder = ESUtils.buildFilterQuery(filter, true);
 
     final Optional<DeleteAspectValuesResult> result = _bulkProcessor
             .deleteByQuery(filterQueryBuilder, false, DEFAULT_LIMIT, TimeValue.timeValueMinutes(10), indexName)
