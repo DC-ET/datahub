@@ -74,7 +74,6 @@ sheet_graphql_query = """
     name
     path
     luid
-    documentViewId
     createdAt
     updatedAt
     tags {
@@ -190,7 +189,6 @@ embedded_datasource_graphql_query = """
     upstreamTables {
         id
         name
-        isEmbedded
         database {
             name
         }
@@ -198,9 +196,8 @@ embedded_datasource_graphql_query = """
         fullName
         connectionType
         description
-        columns {
-            name
-            remoteType
+        columnsConnection {
+            totalCount
         }
     }
     fields {
@@ -263,7 +260,6 @@ custom_sql_graphql_query = """
       id
       name
       query
-      isUnsupportedCustomSql
       columns {
         id
         name
@@ -277,7 +273,6 @@ custom_sql_graphql_query = """
             upstreamTables {
               id
               name
-              isEmbedded
               database {
                 name
               }
@@ -303,7 +298,6 @@ custom_sql_graphql_query = """
       tables {
         id
         name
-        isEmbedded
         database {
           name
         }
@@ -311,9 +305,8 @@ custom_sql_graphql_query = """
         fullName
         connectionType
         description
-        columns {
-            name
-            remoteType
+        columnsConnection {
+            totalCount
         }
       }
       database{
@@ -336,7 +329,6 @@ published_datasource_graphql_query = """
     upstreamTables {
       id
       name
-      isEmbedded
       database {
         name
       }
@@ -344,10 +336,9 @@ published_datasource_graphql_query = """
       fullName
       connectionType
       description
-      columns {
-        name
-        remoteType
-      }
+      columnsConnection {
+            totalCount
+        }
     }
     fields {
         __typename
@@ -396,6 +387,17 @@ published_datasource_graphql_query = """
     projectName
 }
         """
+
+database_tables_graphql_query = """
+{
+    id
+    isEmbedded
+    columns {
+      remoteType
+      name
+    }
+}
+"""
 
 # https://referencesource.microsoft.com/#system.data/System/Data/OleDb/OLEDB_Enum.cs,364
 FIELD_TYPE_MAPPING = {
@@ -624,7 +626,9 @@ def get_unique_custom_sql(custom_sql_list: List[dict]) -> List[dict]:
         unique_csql = {
             "id": custom_sql.get("id"),
             "name": custom_sql.get("name"),
-            "isUnsupportedCustomSql": custom_sql.get("isUnsupportedCustomSql"),
+            # We assume that this is unsupported custom sql if "actual tables that this query references"
+            # are missing from api result.
+            "isUnsupportedCustomSql": True if not custom_sql.get("tables") else False,
             "query": custom_sql.get("query"),
             "columns": custom_sql.get("columns"),
             "tables": custom_sql.get("tables"),

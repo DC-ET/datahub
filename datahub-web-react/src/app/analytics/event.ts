@@ -1,5 +1,7 @@
 import { DataHubViewType, EntityType, RecommendationRenderType, ScenarioType } from '../../types.generated';
+import { EmbedLookupNotFoundReason } from '../embed/lookup/constants';
 import { Direction } from '../lineage/types';
+import { FilterMode } from '../search/utils/constants';
 
 /**
  * Valid event types.
@@ -14,8 +16,14 @@ export enum EventType {
     SearchResultsViewEvent,
     SearchResultClickEvent,
     EntitySearchResultClickEvent,
+    SearchFiltersClearAllEvent,
+    SearchFiltersShowMoreEvent,
     BrowseResultClickEvent,
     HomePageBrowseResultClickEvent,
+    BrowseV2ToggleSidebarEvent,
+    BrowseV2ToggleNodeEvent,
+    BrowseV2SelectNodeEvent,
+    BrowseV2EntityLinkClickEvent,
     EntityViewEvent,
     EntitySectionViewEvent,
     EntityActionEvent,
@@ -68,6 +76,7 @@ export enum EventType {
     DeselectQuickFilterEvent,
     EmbedProfileViewEvent,
     EmbedProfileViewInDataHubEvent,
+    EmbedLookupNotFoundEvent,
 }
 
 /**
@@ -159,6 +168,11 @@ export interface SearchResultsViewEvent extends BaseEvent {
     entityTypeFilter?: EntityType;
     page?: number;
     total: number;
+    entityTypes: string[];
+    filterFields: string[];
+    filterCount: number;
+    filterMode: FilterMode;
+    searchVersion: string;
 }
 
 /**
@@ -172,6 +186,17 @@ export interface SearchResultClickEvent extends BaseEvent {
     entityTypeFilter?: EntityType;
     index: number;
     total: number;
+}
+
+export interface SearchFiltersClearAllEvent extends BaseEvent {
+    type: EventType.SearchFiltersClearAllEvent;
+    total: number;
+}
+
+export interface SearchFiltersShowMoreEvent extends BaseEvent {
+    type: EventType.SearchFiltersShowMoreEvent;
+    activeFilterCount: number;
+    hiddenFilterCount: number;
 }
 
 /**
@@ -192,6 +217,52 @@ export interface BrowseResultClickEvent extends BaseEvent {
 export interface HomePageBrowseResultClickEvent extends BaseEvent {
     type: EventType.HomePageBrowseResultClickEvent;
     entityType: EntityType;
+}
+
+/**
+ * Logged when a user opens or closes the browse v2 sidebar
+ */
+export interface BrowseV2ToggleSidebarEvent extends BaseEvent {
+    type: EventType.BrowseV2ToggleSidebarEvent;
+    action: 'open' | 'close';
+}
+
+/**
+ * Logged when a user opens or closes a sidebar node
+ */
+export interface BrowseV2ToggleNodeEvent extends BaseEvent {
+    type: EventType.BrowseV2ToggleNodeEvent;
+    targetNode: 'entity' | 'environment' | 'platform' | 'browse';
+    action: 'open' | 'close';
+    entity: string;
+    environment?: string;
+    platform?: string;
+    targetDepth: number;
+}
+
+/**
+ * Logged when a user selects a browse node in the sidebar
+ */
+export interface BrowseV2SelectNodeEvent extends BaseEvent {
+    type: EventType.BrowseV2SelectNodeEvent;
+    targetNode: 'browse';
+    action: 'select' | 'deselect';
+    entity: string;
+    environment?: string;
+    platform?: string;
+    targetDepth: number;
+}
+
+/**
+ * Logged when a user clicks a container link in the sidebar
+ */
+export interface BrowseV2EntityLinkClickEvent extends BaseEvent {
+    type: EventType.BrowseV2EntityLinkClickEvent;
+    targetNode: 'browse';
+    entity: string;
+    environment?: string;
+    platform?: string;
+    targetDepth: number;
 }
 
 /**
@@ -435,7 +506,10 @@ export interface ManuallyDeleteLineageEvent extends BaseEvent {
  */
 export interface CreateViewEvent extends BaseEvent {
     type: EventType.CreateViewEvent;
-    viewType: DataHubViewType;
+    viewType?: DataHubViewType;
+    filterFields: string[];
+    entityTypes: string[];
+    searchVersion: string;
 }
 
 /**
@@ -443,8 +517,11 @@ export interface CreateViewEvent extends BaseEvent {
  */
 export interface UpdateViewEvent extends BaseEvent {
     type: EventType.UpdateViewEvent;
-    viewType: DataHubViewType;
+    viewType?: DataHubViewType;
     urn: string;
+    filterFields: string[];
+    entityTypes: string[];
+    searchVersion: string;
 }
 
 /**
@@ -519,6 +596,12 @@ export interface EmbedProfileViewInDataHubEvent extends BaseEvent {
     entityUrn: string;
 }
 
+export interface EmbedLookupNotFoundEvent extends BaseEvent {
+    type: EventType.EmbedLookupNotFoundEvent;
+    url: string;
+    reason: EmbedLookupNotFoundReason;
+}
+
 /**
  * Event consisting of a union of specific event types.
  */
@@ -536,8 +619,14 @@ export type Event =
     | SearchResultsExploreAllClickEvent
     | SearchResultsViewEvent
     | SearchResultClickEvent
+    | SearchFiltersClearAllEvent
+    | SearchFiltersShowMoreEvent
     | BrowseResultClickEvent
     | HomePageBrowseResultClickEvent
+    | BrowseV2ToggleSidebarEvent
+    | BrowseV2ToggleNodeEvent
+    | BrowseV2SelectNodeEvent
+    | BrowseV2EntityLinkClickEvent
     | EntityViewEvent
     | EntitySectionViewEvent
     | EntityActionEvent
@@ -585,4 +674,5 @@ export type Event =
     | SelectQuickFilterEvent
     | DeselectQuickFilterEvent
     | EmbedProfileViewEvent
-    | EmbedProfileViewInDataHubEvent;
+    | EmbedProfileViewInDataHubEvent
+    | EmbedLookupNotFoundEvent;

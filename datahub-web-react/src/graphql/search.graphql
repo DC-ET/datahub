@@ -108,6 +108,9 @@ fragment autoCompleteFields on Entity {
         properties {
             name
         }
+        parentNodes {
+            ...parentNodesFields
+        }
     }
     ... on GlossaryNode {
         properties {
@@ -115,6 +118,11 @@ fragment autoCompleteFields on Entity {
         }
     }
     ... on Domain {
+        properties {
+            name
+        }
+    }
+    ... on DataProduct {
         properties {
             name
         }
@@ -284,6 +292,7 @@ fragment searchResultFields on Entity {
         domain {
             ...entityDomain
         }
+        ...entityDataProduct
         parentContainers {
             ...parentContainersFields
         }
@@ -381,6 +390,7 @@ fragment searchResultFields on Entity {
         domain {
             ...entityDomain
         }
+        ...entityDataProduct
         deprecation {
             ...deprecationFields
         }
@@ -446,6 +456,7 @@ fragment searchResultFields on Entity {
         domain {
             ...entityDomain
         }
+        ...entityDataProduct
         deprecation {
             ...deprecationFields
         }
@@ -502,6 +513,7 @@ fragment searchResultFields on Entity {
         domain {
             ...entityDomain
         }
+        ...entityDataProduct
         deprecation {
             ...deprecationFields
         }
@@ -534,6 +546,7 @@ fragment searchResultFields on Entity {
         domain {
             ...entityDomain
         }
+        ...entityDataProduct
         deprecation {
             ...deprecationFields
         }
@@ -707,6 +720,9 @@ fragment searchResultFields on Entity {
     ... on DataPlatform {
         ...nonConflictingPlatformFields
     }
+    ... on DataProduct {
+        ...dataProductSearchFields
+    }
 }
 
 fragment facetFields on FacetMetadata {
@@ -729,6 +745,9 @@ fragment facetFields on FacetMetadata {
                 name
                 properties {
                     name
+                }
+                parentNodes {
+                    ...parentNodesFields
                 }
             }
             ... on DataPlatform {
@@ -765,6 +784,11 @@ fragment facetFields on FacetMetadata {
                 name
                 properties {
                     displayName
+                }
+            }
+            ... on DataProduct {
+                properties {
+                    name
                 }
             }
         }
@@ -867,5 +891,27 @@ query getEntityMentionNode($urn: String!) {
         urn
         type
         ...searchResultFields
+    }
+}
+
+query getEntityDisplayName($urn: String!) {
+    entity(urn: $urn) {
+        urn
+        type
+        ...entityDisplayNameFields
+    }
+}
+
+query aggregateAcrossEntities($input: AggregateAcrossEntitiesInput!) {
+    aggregateAcrossEntities(input: $input) {
+        facets {
+            ...facetFields
+        }
+    }
+}
+
+query listDataProductAssets($urn: String!, $input: SearchAcrossEntitiesInput!) {
+    listDataProductAssets(urn: $urn, input: $input) {
+        ...searchResults
     }
 }

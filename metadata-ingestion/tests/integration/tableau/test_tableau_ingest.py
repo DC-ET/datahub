@@ -2,7 +2,7 @@ import json
 import logging
 import pathlib
 import sys
-from typing import Optional, cast
+from typing import cast
 from unittest import mock
 
 import pytest
@@ -17,8 +17,6 @@ from tableauserverclient.models import (
 
 from datahub.configuration.source_common import DEFAULT_ENV
 from datahub.ingestion.run.pipeline import Pipeline, PipelineContext
-from datahub.ingestion.source.state.checkpoint import Checkpoint
-from datahub.ingestion.source.state.entity_removal_state import GenericCheckpointState
 from datahub.ingestion.source.tableau import TableauConfig, TableauSource
 from datahub.ingestion.source.tableau_common import (
     TableauLineageOverrides,
@@ -31,6 +29,7 @@ from datahub.metadata.com.linkedin.pegasus2avro.dataset import (
 from datahub.metadata.schema_classes import MetadataChangeProposalClass, UpstreamClass
 from tests.test_helpers import mce_helpers
 from tests.test_helpers.state_helpers import (
+    get_current_checkpoint_from_pipeline,
     validate_all_providers_have_committed_successfully,
 )
 
@@ -253,15 +252,6 @@ def tableau_ingest_common(
             return pipeline
 
 
-def get_current_checkpoint_from_pipeline(
-    pipeline: Pipeline,
-) -> Optional[Checkpoint[GenericCheckpointState]]:
-    tableau_source = cast(TableauSource, pipeline.source)
-    return tableau_source.get_current_checkpoint(
-        tableau_source.stale_entity_removal_handler.job_id
-    )
-
-
 @freeze_time(FROZEN_TIME)
 @pytest.mark.integration
 def test_tableau_ingest(pytestconfig, tmp_path, mock_datahub_graph):
@@ -278,6 +268,7 @@ def test_tableau_ingest(pytestconfig, tmp_path, mock_datahub_graph):
             read_response(pytestconfig, "embeddedDatasourcesConnection_all.json"),
             read_response(pytestconfig, "publishedDatasourcesConnection_all.json"),
             read_response(pytestconfig, "customSQLTablesConnection_all.json"),
+            read_response(pytestconfig, "databaseTablesConnection_all.json"),
         ],
         golden_file_name,
         output_file_name,
@@ -308,6 +299,7 @@ def test_project_pattern(pytestconfig, tmp_path, mock_datahub_graph):
             read_response(pytestconfig, "embeddedDatasourcesConnection_all.json"),
             read_response(pytestconfig, "publishedDatasourcesConnection_all.json"),
             read_response(pytestconfig, "customSQLTablesConnection_all.json"),
+            read_response(pytestconfig, "databaseTablesConnection_all.json"),
         ],
         golden_file_name,
         output_file_name,
@@ -339,6 +331,7 @@ def test_project_path_pattern(pytestconfig, tmp_path, mock_datahub_graph):
             read_response(pytestconfig, "embeddedDatasourcesConnection_all.json"),
             read_response(pytestconfig, "publishedDatasourcesConnection_all.json"),
             read_response(pytestconfig, "customSQLTablesConnection_all.json"),
+            read_response(pytestconfig, "databaseTablesConnection_all.json"),
         ],
         golden_file_name,
         output_file_name,
@@ -371,6 +364,7 @@ def test_project_hierarchy(pytestconfig, tmp_path, mock_datahub_graph):
             read_response(pytestconfig, "embeddedDatasourcesConnection_all.json"),
             read_response(pytestconfig, "publishedDatasourcesConnection_all.json"),
             read_response(pytestconfig, "customSQLTablesConnection_all.json"),
+            read_response(pytestconfig, "databaseTablesConnection_all.json"),
         ],
         golden_file_name,
         output_file_name,
@@ -402,6 +396,7 @@ def test_extract_all_project(pytestconfig, tmp_path, mock_datahub_graph):
             read_response(pytestconfig, "embeddedDatasourcesConnection_all.json"),
             read_response(pytestconfig, "publishedDatasourcesConnection_all.json"),
             read_response(pytestconfig, "customSQLTablesConnection_all.json"),
+            read_response(pytestconfig, "databaseTablesConnection_all.json"),
         ],
         golden_file_name,
         output_file_name,
@@ -432,6 +427,7 @@ def test_value_error_projects_and_project_pattern(
                 read_response(pytestconfig, "embeddedDatasourcesConnection_all.json"),
                 read_response(pytestconfig, "publishedDatasourcesConnection_all.json"),
                 read_response(pytestconfig, "customSQLTablesConnection_all.json"),
+                read_response(pytestconfig, "databaseTablesConnection_all.json"),
             ],
             golden_file_name,
             output_file_name,
@@ -490,6 +486,7 @@ def test_tableau_ingest_with_platform_instance(
             read_response(pytestconfig, "embeddedDatasourcesConnection_all.json"),
             read_response(pytestconfig, "publishedDatasourcesConnection_all.json"),
             read_response(pytestconfig, "customSQLTablesConnection_all.json"),
+            read_response(pytestconfig, "databaseTablesConnection_all.json"),
         ],
         golden_file_name,
         output_file_name,
@@ -565,6 +562,7 @@ def test_tableau_stateful(pytestconfig, tmp_path, mock_time, mock_datahub_graph)
             read_response(pytestconfig, "embeddedDatasourcesConnection_all.json"),
             read_response(pytestconfig, "publishedDatasourcesConnection_all.json"),
             read_response(pytestconfig, "customSQLTablesConnection_all.json"),
+            read_response(pytestconfig, "databaseTablesConnection_all.json"),
         ],
         golden_file_name,
         output_file_name,
@@ -727,6 +725,7 @@ def test_tableau_signout_timeout(pytestconfig, tmp_path, mock_datahub_graph):
             read_response(pytestconfig, "embeddedDatasourcesConnection_all.json"),
             read_response(pytestconfig, "publishedDatasourcesConnection_all.json"),
             read_response(pytestconfig, "customSQLTablesConnection_all.json"),
+            read_response(pytestconfig, "databaseTablesConnection_all.json"),
         ],
         golden_file_name,
         output_file_name,
