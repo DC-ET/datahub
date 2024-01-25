@@ -1,6 +1,7 @@
 import json
 from datetime import datetime, timezone
 
+from datahub.configuration.common import AllowDenyPattern
 from datahub.configuration.time_window_config import BucketDuration
 from datahub.ingestion.source.snowflake import snowflake_query
 from datahub.ingestion.source.snowflake.snowflake_query import SnowflakeQuery
@@ -78,6 +79,7 @@ def default_query_results(  # noqa: C901
             {
                 "TABLE_SCHEMA": "TEST_SCHEMA",
                 "TABLE_NAME": "TABLE_{}".format(tbl_idx),
+                "TABLE_TYPE": "BASE TABLE",
                 "CREATED": datetime(2021, 6, 8, 0, 0, 0, 0),
                 "LAST_ALTERED": datetime(2021, 6, 8, 0, 0, 0, 0),
                 "BYTES": 1024,
@@ -94,7 +96,7 @@ def default_query_results(  # noqa: C901
                 "name": "VIEW_{}".format(view_idx),
                 "created_on": datetime(2021, 6, 8, 0, 0, 0, 0),
                 "comment": "Comment for View",
-                "text": None,
+                "text": f"create view view_{view_idx} as select * from table_{view_idx}",
             }
             for view_idx in range(1, num_views + 1)
         ]
@@ -144,7 +146,7 @@ def default_query_results(  # noqa: C901
             }
         ]
     elif query == snowflake_query.SnowflakeQuery.operational_data_for_time_window(
-        1654499820000,
+        1654473600000,
         1654586220000,
     ):
         return [
@@ -257,22 +259,24 @@ def default_query_results(  # noqa: C901
     elif (
         query
         == snowflake_query.SnowflakeQuery.usage_per_object_per_time_bucket_for_time_window(
-            1654499820000,
+            1654473600000,
             1654586220000,
             use_base_objects=False,
             top_n_queries=10,
             include_top_n_queries=True,
             time_bucket_size=BucketDuration.DAY,
+            email_domain=None,
+            email_filter=AllowDenyPattern.allow_all(),
         )
     ):
         return []
     elif query in (
         snowflake_query.SnowflakeQuery.table_to_table_lineage_history(
-            1654499820000,
+            1654473600000,
             1654586220000,
         ),
         snowflake_query.SnowflakeQuery.table_to_table_lineage_history(
-            1654499820000, 1654586220000, False
+            1654473600000, 1654586220000, False
         ),
     ):
         return [
@@ -331,7 +335,7 @@ def default_query_results(  # noqa: C901
         ]
     elif query in (
         snowflake_query.SnowflakeQuery.table_to_table_lineage_history_v2(
-            start_time_millis=1654499820000,
+            start_time_millis=1654473600000,
             end_time_millis=1654586220000,
             include_view_lineage=True,
             include_column_lineage=True,
@@ -403,7 +407,7 @@ def default_query_results(  # noqa: C901
         ]
     elif query in (
         snowflake_query.SnowflakeQuery.table_to_table_lineage_history_v2(
-            start_time_millis=1654499820000,
+            start_time_millis=1654473600000,
             end_time_millis=1654586220000,
             include_view_lineage=False,
             include_column_lineage=False,
@@ -434,11 +438,6 @@ def default_query_results(  # noqa: C901
             }
             for op_idx in range(1, num_ops + 1)
         ]
-    elif query == snowflake_query.SnowflakeQuery.external_table_lineage_history(
-        1654499820000,
-        1654586220000,
-    ):
-        return []
     elif query in [
         snowflake_query.SnowflakeQuery.view_dependencies(),
     ]:
@@ -470,11 +469,11 @@ def default_query_results(  # noqa: C901
         ]
     elif query in [
         snowflake_query.SnowflakeQuery.view_lineage_history(
-            1654499820000,
+            1654473600000,
             1654586220000,
         ),
         snowflake_query.SnowflakeQuery.view_lineage_history(
-            1654499820000, 1654586220000, False
+            1654473600000, 1654586220000, False
         ),
     ]:
         return [
@@ -509,10 +508,6 @@ def default_query_results(  # noqa: C901
             }
         ]
     elif query in [
-        snowflake_query.SnowflakeQuery.external_table_lineage_history(
-            1654499820000,
-            1654586220000,
-        ),
         snowflake_query.SnowflakeQuery.view_dependencies_v2(),
         snowflake_query.SnowflakeQuery.view_dependencies(),
         snowflake_query.SnowflakeQuery.show_external_tables(),
@@ -574,5 +569,4 @@ def default_query_results(  # noqa: C901
                 "DOMAIN": "DATABASE",
             },
         ]
-    # Unreachable code
-    raise Exception(f"Unknown query {query}")
+    raise ValueError(f"Unexpected query: {query}")

@@ -61,6 +61,7 @@
         "default" : { },
         "Searchable" : {
           "/*" : {
+            "fieldType" : "TEXT",
             "queryByDefault" : true
           }
         }
@@ -94,7 +95,8 @@
       "doc" : "Title of the chart",
       "Searchable" : {
         "enableAutocomplete" : true,
-        "fieldType" : "TEXT_PARTIAL"
+        "fieldNameAliases" : [ "_entityName" ],
+        "fieldType" : "WORD_GRAM"
       }
     }, {
       "name" : "description",
@@ -735,6 +737,11 @@
         "hasValuesFieldName" : "hasGlossaryTerms"
       }
     }, {
+      "name" : "actor",
+      "type" : "Urn",
+      "doc" : "The user URN which will be credited for adding associating this term to the entity",
+      "optional" : true
+    }, {
       "name" : "context",
       "type" : "string",
       "doc" : "Additional context about the association",
@@ -1032,7 +1039,8 @@
       "Searchable" : {
         "boostScore" : 10.0,
         "enableAutocomplete" : true,
-        "fieldType" : "TEXT_PARTIAL"
+        "fieldNameAliases" : [ "_entityName" ],
+        "fieldType" : "WORD_GRAM"
       }
     }, {
       "name" : "description",
@@ -1158,7 +1166,8 @@
       "Searchable" : {
         "boostScore" : 10.0,
         "enableAutocomplete" : true,
-        "fieldType" : "TEXT_PARTIAL"
+        "fieldNameAliases" : [ "_entityName" ],
+        "fieldType" : "WORD_GRAM"
       }
     }, {
       "name" : "description",
@@ -1217,7 +1226,8 @@
       "Searchable" : {
         "boostScore" : 10.0,
         "enableAutocomplete" : true,
-        "fieldType" : "TEXT_PARTIAL"
+        "fieldNameAliases" : [ "_entityName" ],
+        "fieldType" : "WORD_GRAM"
       }
     }, {
       "name" : "description",
@@ -1618,7 +1628,8 @@
       "Searchable" : {
         "boostScore" : 10.0,
         "enableAutocomplete" : true,
-        "fieldType" : "TEXT_PARTIAL"
+        "fieldNameAliases" : [ "_entityName" ],
+        "fieldType" : "WORD_GRAM"
       }
     }, {
       "name" : "qualifiedName",
@@ -1629,7 +1640,7 @@
         "addToFilters" : false,
         "boostScore" : 10.0,
         "enableAutocomplete" : true,
-        "fieldType" : "TEXT"
+        "fieldType" : "WORD_GRAM"
       }
     }, {
       "name" : "description",
@@ -1778,6 +1789,7 @@
     "name" : "GlossaryNodeInfo",
     "namespace" : "com.linkedin.glossary",
     "doc" : "Properties associated with a GlossaryNode",
+    "include" : [ "com.linkedin.common.CustomProperties" ],
     "fields" : [ {
       "name" : "definition",
       "type" : "string",
@@ -1806,7 +1818,8 @@
         "boostScore" : 10.0,
         "enableAutocomplete" : true,
         "fieldName" : "displayName",
-        "fieldType" : "TEXT_PARTIAL"
+        "fieldNameAliases" : [ "_entityName" ],
+        "fieldType" : "WORD_GRAM"
       }
     }, {
       "name" : "id",
@@ -1842,7 +1855,8 @@
       "Searchable" : {
         "boostScore" : 10.0,
         "enableAutocomplete" : true,
-        "fieldType" : "TEXT_PARTIAL"
+        "fieldNameAliases" : [ "_entityName" ],
+        "fieldType" : "WORD_GRAM"
       }
     }, {
       "name" : "definition",
@@ -1906,6 +1920,7 @@
       "Searchable" : {
         "boostScore" : 10.0,
         "enableAutocomplete" : true,
+        "fieldNameAliases" : [ "_entityName" ],
         "fieldType" : "TEXT_PARTIAL",
         "queryByDefault" : true
       }
@@ -2033,7 +2048,7 @@
       "optional" : true,
       "Searchable" : {
         "boostScore" : 10.0,
-        "fieldType" : "TEXT_PARTIAL",
+        "fieldType" : "WORD_GRAM",
         "queryByDefault" : true
       }
     }, {
@@ -2085,7 +2100,8 @@
       "Searchable" : {
         "boostScore" : 10.0,
         "enableAutocomplete" : true,
-        "fieldType" : "TEXT_PARTIAL",
+        "fieldNameAliases" : [ "_entityName" ],
+        "fieldType" : "WORD_GRAM",
         "queryByDefault" : true
       }
     }, {
@@ -2148,7 +2164,7 @@
       "Searchable" : {
         "boostScore" : 10.0,
         "enableAutocomplete" : true,
-        "fieldType" : "TEXT_PARTIAL",
+        "fieldType" : "WORD_GRAM",
         "queryByDefault" : true
       }
     }, {
@@ -2241,7 +2257,7 @@
         "Searchable" : {
           "boostScore" : 10.0,
           "enableAutocomplete" : true,
-          "fieldType" : "TEXT_PARTIAL",
+          "fieldType" : "WORD_GRAM",
           "queryByDefault" : true
         }
       } ],
@@ -2261,7 +2277,7 @@
           "boostScore" : 2.0,
           "enableAutocomplete" : true,
           "fieldName" : "ldap",
-          "fieldType" : "TEXT_PARTIAL"
+          "fieldType" : "WORD_GRAM"
         }
       } ],
       "Aspect" : {
@@ -2307,7 +2323,7 @@
         "doc" : "Unique Identifier of the data flow",
         "Searchable" : {
           "enableAutocomplete" : true,
-          "fieldType" : "TEXT_PARTIAL"
+          "fieldType" : "WORD_GRAM"
         }
       }, {
         "name" : "cluster",
@@ -2344,7 +2360,7 @@
         "doc" : "Unique Identifier of the data job",
         "Searchable" : {
           "enableAutocomplete" : true,
-          "fieldType" : "TEXT_PARTIAL"
+          "fieldType" : "WORD_GRAM"
         }
       } ],
       "Aspect" : {
@@ -2919,7 +2935,7 @@
         "type" : "string",
         "Searchable" : {
           "enableAutocomplete" : true,
-          "fieldType" : "TEXT_PARTIAL"
+          "fieldType" : "WORD_GRAM"
         }
       } ],
       "Aspect" : {
@@ -2937,7 +2953,7 @@
         "Searchable" : {
           "enableAutocomplete" : true,
           "fieldName" : "id",
-          "fieldType" : "TEXT_PARTIAL"
+          "fieldType" : "WORD_GRAM"
         }
       } ],
       "Aspect" : {
@@ -2962,7 +2978,8 @@
         "Searchable" : {
           "boostScore" : 8.0,
           "enableAutocomplete" : true,
-          "fieldType" : "TEXT_PARTIAL"
+          "fieldNameAliases" : [ "_entityName" ],
+          "fieldType" : "WORD_GRAM"
         }
       } ],
       "Aspect" : {
@@ -3027,7 +3044,8 @@
         "Searchable" : {
           "boostScore" : 10.0,
           "enableAutocomplete" : true,
-          "fieldType" : "TEXT_PARTIAL"
+          "fieldNameAliases" : [ "_entityName" ],
+          "fieldType" : "WORD_GRAM"
         }
       }, {
         "name" : "origin",
@@ -3594,7 +3612,7 @@
           "boostScore" : 10.0,
           "enableAutocomplete" : true,
           "fieldName" : "id",
-          "fieldType" : "TEXT_PARTIAL"
+          "fieldType" : "WORD_GRAM"
         }
       } ],
       "Aspect" : {
@@ -3612,7 +3630,8 @@
         "Searchable" : {
           "boostScore" : 10.0,
           "enableAutocomplete" : true,
-          "fieldType" : "TEXT_PARTIAL"
+          "fieldNameAliases" : [ "_entityName" ],
+          "fieldType" : "WORD_GRAM"
         }
       }, {
         "name" : "description",
@@ -3736,6 +3755,7 @@
     "path" : "/runs",
     "schema" : "com.linkedin.metadata.aspect.VersionedAspect",
     "doc" : "resource for showing information and rolling back runs\n\ngenerated from: com.linkedin.metadata.resources.entity.BatchIngestionRunResource",
+    "resourceClass" : "com.linkedin.metadata.resources.entity.BatchIngestionRunResource",
     "collection" : {
       "identifier" : {
         "name" : "runsId",
@@ -3744,6 +3764,7 @@
       "supports" : [ ],
       "actions" : [ {
         "name" : "describe",
+        "javaMethodName" : "describe",
         "parameters" : [ {
           "name" : "runId",
           "type" : "string"
@@ -3765,6 +3786,7 @@
         "returns" : "{ \"type\" : \"array\", \"items\" : \"com.linkedin.metadata.run.AspectRowSummary\" }"
       }, {
         "name" : "list",
+        "javaMethodName" : "list",
         "doc" : "Retrieves the value for an entity that is made up of latest versions of specified aspects.",
         "parameters" : [ {
           "name" : "pageOffset",
@@ -3782,6 +3804,7 @@
         "returns" : "{ \"type\" : \"array\", \"items\" : \"com.linkedin.metadata.run.IngestionRunSummary\" }"
       }, {
         "name" : "rollback",
+        "javaMethodName" : "rollback",
         "doc" : "Rolls back an ingestion run",
         "parameters" : [ {
           "name" : "runId",

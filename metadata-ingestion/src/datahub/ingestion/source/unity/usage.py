@@ -117,7 +117,10 @@ class UnityCatalogUsageExtractor:
     def _generate_operation_workunit(
         self, query: Query, table_info: QueryTableInfo
     ) -> Iterable[MetadataWorkUnit]:
-        if query.statement_type not in OPERATION_STATEMENT_TYPES:
+        if (
+            not query.statement_type
+            or query.statement_type not in OPERATION_STATEMENT_TYPES
+        ):
             return None
 
         # Not sure about behavior when there are multiple target tables. This is a best attempt.
@@ -176,10 +179,8 @@ class UnityCatalogUsageExtractor:
                     for table in runner.target_tables
                 ],
             )
-        except Exception:
-            logger.info(
-                f"Could not parse query via lineage runner, {query}", exc_info=True
-            )
+        except Exception as e:
+            logger.info(f"Could not parse query via lineage runner, {query}: {e!r}")
             return None
 
     @staticmethod
@@ -202,8 +203,8 @@ class UnityCatalogUsageExtractor:
             return GenericTableInfo(
                 source_tables=[t for t in tables if t], target_tables=[]
             )
-        except Exception:
-            logger.info(f"Could not parse query via spark plan, {query}", exc_info=True)
+        except Exception as e:
+            logger.info(f"Could not parse query via spark plan, {query}: {e!r}")
             return None
 
     @staticmethod
@@ -216,12 +217,15 @@ class UnityCatalogUsageExtractor:
         self, tables: List[str], table_map: TableMap
     ) -> List[TableReference]:
         """Resolve tables to TableReferences, filtering out unrecognized or unresolvable table names."""
+
+        missing_table = False
+        duplicate_table = False
         output = []
         for table in tables:
             table = str(table)
             if table not in table_map:
                 logger.debug(f"Dropping query with unrecognized table: {table}")
-                self.report.num_queries_dropped_missing_table += 1
+                missing_table = True
             else:
                 refs = table_map[table]
                 if len(refs) == 1:
@@ -230,6 +234,11 @@ class UnityCatalogUsageExtractor:
                     logger.warning(
                         f"Could not resolve table ref for {table}: {len(refs)} duplicates."
                     )
-                    self.report.num_queries_dropped_duplicate_table += 1
+                    duplicate_table = True
+
+        if missing_table:
+            self.report.num_queries_missing_table += 1
+        if duplicate_table:
+            self.report.num_queries_duplicate_table += 1
 
         return output
